@@ -31,7 +31,6 @@ defmodule Readability do
   alias Readability.TitleFinder
   alias Readability.AuthorFinder
   alias Readability.ArticleBuilder
-  alias Readability.Summary
   alias Readability.Helper
 
   @default_options [
@@ -73,70 +72,6 @@ defmodule Readability do
   @type url :: binary
   @type options :: list
   @type headers :: list[tuple]
-
-  @doc """
-  summarize the primary readable content of a webpage.
-  """
-  @spec summarize(url, options) :: Summary.t()
-  def summarize(url, opts \\ []) do
-    opts = Keyword.merge(opts, page_url: url)
-    httpoison_options = Application.get_env(:readability, :httpoison_options, [])
-    %{status_code: _, body: raw, headers: headers} = HTTPoison.get!(url, [], httpoison_options)
-
-    case is_response_markup(headers) do
-      true ->
-        html_tree =
-          raw
-          |> Helper.normalize(url: url)
-
-        article_tree =
-          html_tree
-          |> ArticleBuilder.build(opts)
-
-        %Summary{
-          title: title(html_tree),
-          authors: authors(html_tree),
-          article_html: readable_html(article_tree),
-          article_text: readable_text(article_tree)
-        }
-
-      _ ->
-        %Summary{title: nil, authors: nil, article_html: nil, article_text: raw}
-    end
-  end
-
-  @doc """
-  Extract MIME Type from headers
-
-  ## Example
-
-      iex> mime = Readability.mime(headers_list)
-      "text/html"
-  """
-  @spec mime(headers) :: String.t()
-  def mime(headers \\ []) do
-    headers
-    |> Enum.find(
-      # default
-      {"Content-Type", "text/plain"},
-      fn {key, _} -> String.downcase(key) == "content-type" end
-    )
-    |> elem(1)
-  end
-
-  @doc """
-  Return true if Content-Type in provided headers list is a markup type,
-  else false
-
-  ## Example
-
-      iex> Readability.is_response_markup?([{"Content-Type", "text/html"}])
-      true
-  """
-  @spec is_response_markup(headers) :: boolean
-  def is_response_markup(headers) do
-    mime(headers) =~ @markup_mimes
-  end
 
   @doc """
   Extract title
@@ -206,7 +141,7 @@ defmodule Readability do
     html_str = html_tree |> raw_html
 
     Regex.replace(tags_to_br, html_str, &"\n#{&1}")
-    |> Floki.parse()
+    |> Floki.parse_document!()
     |> Floki.text()
     |> String.trim()
   end
@@ -219,7 +154,7 @@ defmodule Readability do
     html_tree |> Floki.raw_html(encode: false)
   end
 
-  def parse(raw_html) when is_binary(raw_html), do: Floki.parse(raw_html)
+  def parse(raw_html) when is_binary(raw_html), do: Floki.parse_document!(raw_html)
 
   def regexes(key), do: @regexes[key]
 

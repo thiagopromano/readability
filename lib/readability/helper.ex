@@ -79,6 +79,10 @@ defmodule Readability.Helper do
     end
   end
 
+  def remove_tag({_, _} = tree, _fun) do
+    nil
+  end
+
   @doc """
   Count only text length
   """
@@ -109,7 +113,7 @@ defmodule Readability.Helper do
     |> String.replace(Readability.regexes(:replace_fonts), "<\1span>")
     |> String.replace(Readability.regexes(:normalize), " ")
     |> transform_img_paths(opts[:url])
-    |> Floki.parse()
+    |> Floki.parse_document!()
     |> Floki.filter_out(:comment)
     |> remove_tag(fn {tag, _, _} -> is_atom(tag) end)
   end

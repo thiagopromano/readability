@@ -34,7 +34,7 @@ defmodule Readability.HelperTest do
   end
 
   test "remove tag", %{html_tree: html_tree} do
-    expected = "<html><body></body></html>" |> parse
+    expected = {"html", [], [{"body", [], []}]}
 
     result =
       html_tree
@@ -56,7 +56,6 @@ defmodule Readability.HelperTest do
 
     assert result == expected
   end
-
 
   test "inner text length", %{html_tree: html_tree} do
     result = html_tree |> Helper.text_length()
